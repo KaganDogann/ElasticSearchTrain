@@ -1,0 +1,19 @@
+﻿using Elasticsearch.API.DTOs;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Elasticsearch.API.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+public class BaseController : ControllerBase
+{
+    [NonAction]
+    public IActionResult CreateActionResult<T>(ResponseDto<T> response)
+    {
+        if (response.Status == System.Net.HttpStatusCode.NoContent)
+            return new ObjectResult(null) { StatusCode = response.GetHashCode() }; //Ok Bed Request gibi oların ata babasıdır ObjectResult
+
+        return new ObjectResult(response) { StatusCode = response.Status.GetHashCode() };
+    }
+}
