@@ -1,8 +1,6 @@
-﻿using Elasticsearch.API.DTOs;
-using Elasticsearch.API.Models;
+﻿using Elastic.Clients.Elasticsearch;
+using Elasticsearch.API.DTOs;
 using Elasticsearch.API.Repositories;
-using Nest;
-using System.Collections.Immutable;
 using System.Net;
 
 namespace Elasticsearch.API.Services
@@ -56,9 +54,9 @@ namespace Elasticsearch.API.Services
         {
             var hasProduct = await _productRepository.GetByIdAsync(id);
 
-            if(hasProduct == null)
+            if (hasProduct == null)
             {
-                return ResponseDto<ProductDto>.Fail("ürün bulunamadı" , HttpStatusCode.NotFound);
+                return ResponseDto<ProductDto>.Fail("ürün bulunamadı", HttpStatusCode.NotFound);
             }
 
             return ResponseDto<ProductDto>.Success(hasProduct.CreateDto(), HttpStatusCode.OK);
@@ -68,7 +66,7 @@ namespace Elasticsearch.API.Services
         {
             var isSuccess = await _productRepository.UpdateAsync(productUpdateDto);
 
-            if(!isSuccess) return ResponseDto<bool>.Fail(new List<string> { "update esnasında hata meydana geldi" }, System.Net.HttpStatusCode.InternalServerError);
+            if (!isSuccess) return ResponseDto<bool>.Fail(new List<string> { "update esnasında hata meydana geldi" }, System.Net.HttpStatusCode.InternalServerError);
 
             return ResponseDto<bool>.Success(true, HttpStatusCode.NoContent);
         }
@@ -78,18 +76,19 @@ namespace Elasticsearch.API.Services
 
             var deleteResponse = await _productRepository.DeleteAsync(id);
 
-            if (!deleteResponse.IsValid && deleteResponse.Result == Result.NotFound)
+            if (!deleteResponse.IsValidResponse && deleteResponse.Result == Result.NotFound)
             {
                 return ResponseDto<bool>.Fail(new List<string> { "silmeye çalıştığınız ürün bulunamamıştır" }, System.Net.HttpStatusCode.InternalServerError);
             }
 
-            if (!deleteResponse.IsValid)
+            if (!deleteResponse.IsSuccess())
             {
+                deleteResponse.TryGetOriginalException(out Exception? exception);
 
-                _logger.LogError(deleteResponse.OriginalException, deleteResponse.ServerError.Error.ToString());
+                _logger.LogError(exception, deleteResponse.ElasticsearchServerError.Error.ToString());
 
                 return ResponseDto<bool>.Fail(new List<string> { "silme esnasında hata meydana geldi" }, System.Net.HttpStatusCode.InternalServerError);
-            }            
+            }
 
             return ResponseDto<bool>.Success(true, HttpStatusCode.NoContent);
         }
